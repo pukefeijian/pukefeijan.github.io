@@ -1,0 +1,210 @@
+var basic={form:'Erlo',err:{ok:'确认',cl:'取消',tit:'系统提示',reset:'重新请求',sx:'刷新页面',suc:'操作成功',fail:'服务器响应失败',maxtime:'【处理数据过大，请等待】'},load:'erloLoad',email:'lj_f123@126.com',www:'//www.erlo.vip/',loadimg:'style/img/load.gif',path:'/',version:'2.4'},ljTimes,nophone=['passwd','old','set','sq'],fdata=[];
+var ue;
+$(function(){
+    $('.ljSubmt').click(function(){
+        var obj=$('.carForm');
+        return carForm(obj,true);
+    })
+    /*****************************************************/
+    /*****************************************************/
+    $('.imgFile').each(function(){
+        $(this).upFile();
+    })
+    $(document).on('click','.ljImg',function(){
+        var html='<img src="'+$(this).attr('src')+'">';
+        alertLj(html,{img:true});
+    })
+    $('.ljSub').click(function(){
+        $(this).parents('form').submit();
+    })
+    $('.ljsForm').submit(function(){
+        var obj=$(this),data={action:obj.attr('action')};
+        if(obj.attr('fun')){
+            return false;
+        }
+        data=getFormDataa(obj,data);
+        if(!data)return false;
+        ajaxForm(obj,data,function(msg){
+            if(msg && msg.error=='0'){
+                if(msg.url){
+                    if(msg.url=='/vip' && obj.attr('url')){
+                        window.location.href=obj.attr('url');
+                    }else{
+                        window.location.href=msg.url;
+                    }
+                }else if(msg.rurl){
+                    alertLj(msg.html?msg.html:basic.err.suc,{click:'window.location.href=\''+msg.rurl+'\';'});
+                }else{
+                    if(obj.attr('ourl'))
+                    alertLj(msg.html?msg.html:basic.err.suc,{click:'window.location.href=\''+obj.attr('ourl')+'\';'});
+                    else
+                    alertLj(msg.html?msg.html:basic.err.suc,{click:'window.location.reload();'});
+                }
+            }else{
+                if(msg.funtotal){
+                    $('.z_pass_pop').css({'z-index':10}).show();
+                }else{
+                    alertLj(msg?(msg.html?msg.html:basic.err.fail):basic.err.fail);
+                }
+                obj.removeClass(basic.load);
+                if(obj.find('.codeClick').size()>0)obj.find('.codeClick').click();
+            }
+        },false,function(){
+            alertLj(basic.err.fail)
+        })
+        return false;
+    });
+    var srcs=[],wx=$('meta[name="wx"]').size()>0?$('meta[name="wx"]').attr('content'):'';
+    $('.ljimgshow img').each(function(){
+        srcs.push(wx+$(this).attr('src'))
+    })
+    $('.ljimgshow img').click(function(){
+        var src=$(this).attr('src'),img='<img src="'+src+'" style="max-width:100%;">';
+        wx=false;
+        if(wx){
+              var n=$(this).index();
+              WeixinJSBridge.invoke('imagePreview', {
+                'current' : n,
+                'urls' : srcs
+            });
+        }else{
+            var box='<div class="boxlj" style="z-index:2;position:fixed;top:0;left:0;background:rgba(0,0,0,.5);width:100vw;height:100vh;text-align:center;padding:20px 0;"><div style="/*top:30%;transform: translateY(-50%);position: relative;*/display: flex;align-items: center;justify-content: center;height: 100%;">'+img+'</div><a href="javascript:" style="display:block;text-align:center;line-height:35px;color:#fff;position:fixed;bottom:0;left:0;width:100%">关闭</a></div>';
+            $('body').append(box);
+        }
+
+    })
+	$('a').each(function(){
+     $(this).attr('title', '');
+   });
+})
+function ajaxForm(obj,data,suc,bef,err){
+    if($('meta[name="web"]').size()>0)data['ljweb']=true;
+    $.ajax({
+        type:'post',data:data,dataType:'json',beforeSend:function(){
+            if(bef)bef();
+            obj.addClass(basic.load);
+        },error:function(){
+            if(err)err();
+            obj.removeClass(basic.load);
+        },success:function(msg){
+            if(suc)suc(msg)
+        }
+    })
+}
+
+function getFormDataa(obj,data){
+    var e;
+    data['sign']=$('meta[name="sign"]').attr('content');
+    obj.find('.formValt').each(function(){
+        if(data[$(this).attr('name')]){
+            data[$(this).attr('name')]+=' - '+$(this).val();
+        }else{
+            data[$(this).attr('name')]=$(this).val();
+        }
+    })
+    obj.find('.formVal').each(function(){
+        if(!e && $(this).attr('nonull') && !$(this).val()){
+            if(isNaN($(this).attr('nonull'))){
+                e=$(this).attr('nonull');
+            }else{
+                e=$(this).attr('data-placeholder')?$(this).attr('data-placeholder'):$(this).attr('placeholder');
+            }
+        }
+        if($(this).val()!=$(this).attr('data-placeholder')){
+            data[$(this).attr('name')]=$(this).val();
+        }
+    })
+    obj.find('.formVals:checked').each(function(){
+        if(data[$(this).attr('name')]){
+            data[$(this).attr('name')]+=$(this).val()+',';
+        }else{
+            data[$(this).attr('name')]=','+$(this).val()+',';
+        }
+    })
+    obj.find('.formValz.on').each(function(){
+        if(data[$(this).attr('name')]){
+            data[$(this).attr('name')]+=','+$(this).attr('val');
+        }else{
+            data[$(this).attr('name')]=$(this).attr('val');
+        }
+    })
+    obj.find('.formValn').each(function(){
+        if(!data[$(this).attr('name')])data[$(this).attr('name')]='';
+        if($(this).val()){
+            if(data[$(this).attr('name')])data[$(this).attr('name')]+=',';
+            data[$(this).attr('name')]+=$(this).val();
+        }
+    })
+    obj.find('.formValr:checked').each(function(){
+        data[$(this).attr('name')]=$(this).val();
+    })
+    if(ue)data['cont']=ue.getContent();
+    if(e){
+        alertLj(e+'不能为空');
+        return false;
+    }
+    return data;
+}
+function alertLj(str,obj,ppobj){
+    if(ljTimes)clearInterval(ljTimes);
+    if($('.alertLjBox').size())$('.alertLjBox').remove();
+    if(!obj)obj={};
+    if(typeof obj=='string')obj=o(obj);
+    if(!obj.title)obj.title=basic.err.tit;
+    if(!obj.ok)obj.ok=basic.err.ok;
+    if(!obj.c)obj.c=basic.err.cl;
+    var pobj=ppobj?ppobj:$('body'),pwobj=ppobj?(ppobj.attr('class')?ppobj:$(window)):$(window);
+    var load='<img src="'+basic.path+'style/img/load.gif">',html,close='<a class="alertClose" onclick="alertLjClose()">关闭</a>',title='<div class="alertTitle">'+obj.title+'</div>',sure='<a class="alertSure">'+obj.ok+'</a>',cancel='<a class="alertCancel" onclick="alertLjClose()">'+obj.c+'</a>';
+    var handle='<div class="alertHandle">'+sure+cancel+'</div>';
+    html='<div class="alertBox">'+str+'</div>';
+    html='<div class="alertLj">'+close+title+html+handle+'</div>';
+    html='<div class="alertLjBox '+(obj.img?' ljImgBox" onclick="alertLjClose();':'')+'">'+html+'</div>';
+    var cssLeft='-'+pwobj.width()+'px',cssTop=0;
+    pobj.append(html).find('.alertLj').css({left:cssLeft,top:cssTop});
+    if(obj.click){
+	   $('.alertLj .alertSure').attr('onclick',obj.click);
+    }else{
+	   $('.alertLj .alertSure').attr('onclick','alertLjClose()');
+    }
+    if(obj.noClose)$('.alertLj .alertClose').remove();
+    if(!obj.cancel)$('.alertLj .alertCancel').remove();
+    if(obj.cancel && obj.cancelClick)$('.alertLj .alertCancel').attr('onclick',obj.cancelClick);
+    if(str=='load'){
+	   $('.alertLj').addClass('load').find('.alertBox').html(load).append('<span class="ljTimes"> </span>');
+	   $('.alertLj .alertClose').remove();
+	   ljLoadTimes();
+    }
+    cssLeft=(pwobj.width()-$(".alertLj").width())/2;
+    cssTop=(pwobj.height()-$(".alertLj").height())/2.5+pwobj.scrollTop();
+    $('.alertLj').css({left:cssLeft,top:cssTop},300).fadeIn(300);
+    $('.alertLjBox').height($(document).height());
+}
+function ljLoadTimes(res){
+    var ljI=1;
+    ljTimes=setInterval(ljTimesGo,1000);
+    function ljTimesGo(){
+        if($('.ljTimes').size()>0){
+            $('.ljTimes').html((ljI<10?("0"+ljI):ljI)+'s'+(ljI>10?('<br>'+basic.err.maxtime):''));ljI++;
+        }else{
+            clearInterval(ljTimes);
+        }
+    }
+}
+function alertLjClose(fun,now){
+    if(now) {
+        $('.alertLjBox').hide();fun;
+    }else{
+        $('.alertLjBox').fadeOut(300,function(){
+           $(this).remove();fun
+        });
+    }
+}
+function errHandle(error){
+    if(error.status==810){
+	   alertLj(error.responseText,{ok:basic.err.reset,click:'window.location.reload();',cancel:false,noClose:true});
+    }else if(error.status==818){
+	   alertLj(error.responseText,{ok:basic.err.sx,click:'window.location.reload();',cancel:false,noClose:true});
+    }else{
+	   alertLj(basic.err.fail)
+    }
+}
